@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS Code - happy_birthday_fikri.py</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #1e1e2e;
+            --sidebar-bg: #181825;
+            --editor-bg: #11111b;
+            --terminal-bg: #181825;
+            --accent-blue: #89b4fa;
+            --accent-green: #a6e3a1;
+            --accent-yellow: #f9e2af;
+            --accent-pink: #f5c2e7;
+            --text-main: #cdd6f4;
+            --text-sub: #a6adc8;
+            --line-num: #585b70;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Fira Code', monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* IDE Window Header */
+        .window-header {
+            background-color: #11111b;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid #313244;
+            user-select: none;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .btn-close { background-color: #f38ba8; }
+        .btn-min { background-color: #f9e2af; }
+        .btn-max { background-color: #a6e3a1; }
+
+        .window-title {
+            font-size: 13px;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* IDE Layout */
+        .ide-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid #313244;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            padding-left: 5px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-item.active {
+            background-color: #313244;
+            color: var(--text-main);
+        }
+
+        .file-item:hover {
+            background-color: #212234;
+        }
+
+        /* Main Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--editor-bg);
+            overflow: hidden;
+        }
+
+        /* Editor Tab */
+        .tabs-bar {
+            background-color: #181825;
+            display: flex;
+            border-bottom: 1px solid #313244;
+        }
+
+        .tab {
+            padding: 10px 18px;
+            font-size: 13px;
+            background-color: var(--editor-bg);
+            color: var(--accent-blue);
+            border-right: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-top: 2px solid var(--accent-blue);
+        }
+
+        /* Code Area */
+        .editor-body {
+            flex: 1;
+            display: flex;
+            padding: 15px 0;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .line-numbers {
+            width: 45px;
+            text-align: right;
+            padding-right: 15px;
+            color: var(--line-num);
+            user-select: none;
+        }
+
+        .code-content {
+            flex: 1;
+            padding-right: 20px;
+            white-space: pre-wrap;
+        }
+
+        /* Code Highlighting Syntax */
+        .kw { color: #cba6f7; font-weight: bold; }
+        .fn { color: #89b4fa; }
+        .str { color: #a6e3a1; }
+        .num { color: #fab387; }
+        .cm { color: #6c7086; font-style: italic; }
+        .var { color: #f5e0dc; }
+
+        /* Terminal Section */
+        .terminal-panel {
+            height: 200px;
+            background-color: var(--terminal-bg);
+            border-top: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            padding: 8px 16px;
+            background-color: #11111b;
+            font-size: 12px;
+            color: var(--text-sub);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #313244;
+        }
+
+        .terminal-body {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 13px;
+            overflow-y: auto;
+            color: var(--accent-green);
+        }
+
+        .terminal-line {
+            margin-bottom: 6px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .prompt { color: var(--accent-pink); }
+
+        /* Deploy Action Button */
+        .deploy-btn {
+            background: linear-gradient(135deg, #a6e3a1 0%, #89b4fa 100%);
+            color: #11111b;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .deploy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(137, 180, 250, 0.4);
+        }
+
+        /* Success Card Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 17, 27, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .card-modal {
+            background: #1e1e2e;
+            border: 2px solid var(--accent-blue);
+            border-radius: 16px;
+            padding: 35px 30px;
+            width: 90%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            transform: scale(0.8);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .modal-overlay.active .card-modal {
+            transform: scale(1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: rgba(166, 227, 161, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .card-modal h2 {
+            font-size: 24px;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .card-modal p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .stat-box {
+            background: #181825;
+            padding: 12px 8px;
+            border-radius: 8px;
+            border: 1px solid #313244;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--accent-yellow);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .close-btn {
+            background: var(--accent-blue);
+            color: #11111b;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #b4befe;
+        }
+
+        @media (max-width: 600px) {
+            .sidebar { display: none; }
+            .terminal-panel { height: 160px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- IDE Window Header -->
+    <div class="window-header">
+        <div class="window-controls">
+            <div class="control-btn btn-close"></div>
+            <div class="control-btn btn-min"></div>
+            <div class="control-btn btn-max"></div>
+        </div>
+        <div class="window-title">
+            <i class="fa-brands fa-python" style="color: #89b4fa;"></i>
+            happy_birthday_fikri.py - Visual Studio Code
+        </div>
+        <button class="deploy-btn" onclick="deployProduction()">
+            <i class="fa-solid fa-rocket"></i> RUN & DEPLOY
+        </button>
+    </div>
+
+    <!-- IDE Main Container -->
+    <div class="ide-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-title">Explorer</div>
+            <div class="file-item active">
+                <i class="fa-brands fa-python" style="color: #89b4fa;"></i>
+                happy_birthday.py
+            </div>
+            <div class="file-item">
+                <i class="fa-solid fa-gear" style="color: #f9e2af;"></i>
+                config.json
+            </div>
+            <div class="file-item">
+                <i class="fa-solid fa-database" style="color: #f5c2e7;"></i>
+                fikri_db.sqlite
+            </div>
+        </div>
+
+        <!-- Editor Workspace -->
+        <div class="workspace">
+            <div class="tabs-bar">
+                <div class="tab">
+                    <i class="fa-brands fa-python"></i>
+                    happy_birthday_fikri.py
+                </div>
+            </div>
+
+            <!-- Code Editor -->
+            <div class="editor-body">
+                <div class="line-numbers">
+                    1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15
+                </div>
+                <div class="code-content">
+<span class="cm"># ===============================================</span>
+<span class="cm"># PROJECT: Birthday Celebration Engine v2026.0</span>
+<span class="cm"># TARGET : Fikri (Seng)</span>
+<span class="cm"># ===============================================</span>
+
+<span class="kw">import</span> <span class="var">universe</span>
+<span class="kw">from</span> <span class="var">blessings</span> <span class="kw">import</span> <span class="fn">health</span>, <span class="fn">wealth</span>, <span class="fn">happiness</span>
+
+<span class="kw">class</span> <span class="fn">DeveloperProfile</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="var">self</span>, <span class="var">name</span>):
+        <span class="var">self</span>.<span class="var">name</span> = <span class="str">"Fikri"</span>
+        <span class="var">self</span>.<span class="var">status</span> = <span class="str">"Leveling Up 🎉"</span>
+        <span class="var">self</span>.<span class="var">bugs</span> = <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">grant_wishes</span>(<span class="var">self</span>):
+        <span class="kw">return</span> {
+            <span class="str">"age"</span>: <span class="str">"Age + 1 🚀"</span>,
+            <span class="str">"message"</span>: <span class="str">"Happy Birthday Seng! 🥳🎉"</span>,
+            <span class="str">"doas"</span>: <span class="str">"Semoga panjang umur, sehat selalu & makin sukses!"</span>
+        }
+
+<span class="var">fikri</span> = <span class="fn">DeveloperProfile</span>(<span class="str">"Fikri"</span>)
+<span class="fn">print</span>(<span class="var">fikri</span>.<span class="fn">grant_wishes</span>())
+                </div>
+            </div>
+
+            <!-- Terminal Area -->
+            <div class="terminal-panel">
+                <div class="terminal-header">
+                    <span><i class="fa-solid fa-terminal"></i> TERMINAL - bash</span>
+                    <span style="color: #a6e3a1;"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> System Online</span>
+                </div>
+                <div class="terminal-body" id="terminalOutput">
+                    <div class="terminal-line">
+                        <span class="prompt">fikri@birthday-server:~$</span>
+                        <span>python3 happy_birthday_fikri.py</span>
+                    </div>
+                    <div class="terminal-line" style="color: #89b4fa;">
+                        [INFO] Compiling wishes for Fikri...
+                    </div>
+                    <div class="terminal-line" style="color: #f9e2af;">
+                        [SYSTEM] Memory check: 100% Happiness allocated. 0 Errors found.
+                    </div>
+                    <div class="terminal-line">
+                        <span class="prompt">fikri@birthday-server:~$</span>
+                        <span style="color: #cdd6f4;">Klik tombol <strong>"RUN & DEPLOY"</strong> di atas untuk mengeksekusi! 🚀</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal Card -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="card-modal">
+            <div class="status-badge">
+                <i class="fa-solid fa-check-circle"></i> STATUS: 200 OK (SUCCESS)
+            </div>
+            <h2>Happy Birthday, Fikri! 🥳🎉</h2>
+            <p>
+                "Happy Birthday Seng 🥳🎉 Semoga panjang umur, sehat selalu, dan makin sukses ya! Selalu lancar segala urusannya!"
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Happiness</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Bugs / Issues</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">∞</div>
+                    <div class="stat-label">Rezeki</div>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeModal()">
+                <i class="fa-solid fa-heart"></i> Terima Kasih!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function playBirthdayTune() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioContext();
+                const notes = [
+                    { f: 261.63, d: 0.3 },
+                    { f: 261.63, d: 0.3 },
+                    { f: 293.66, d: 0.6 },
+                    { f: 261.63, d: 0.6 },
+                    { f: 349.23, d: 0.6 },
+                    { f: 329.63, d: 1.0 },
+                ];
+
+                let time = ctx.currentTime;
+                notes.forEach(note => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'square';
+                    osc.frequency.value = note.f;
+
+                    gain.gain.setValueAtTime(0.1, time);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, time + note.d);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(time);
+                    osc.stop(time + note.d);
+
+                    time += note.d + 0.05;
+                });
+            } catch (e) {
+                console.log("Audio not supported");
+            }
+        }
+
+        function deployProduction() {
+            const term = document.getElementById('terminalOutput');
+            const newLog = document.createElement('div');
+            newLog.className = 'terminal-line';
+            newLog.style.color = '#a6e3a1';
+            newLog.innerHTML = `<span class="prompt">fikri@birthday-server:~$</span> Executing deploy... SUCCESS! 🎉`;
+            term.appendChild(newLog);
+            term.scrollTop = term.scrollHeight;
+
+            confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+
+            playBirthdayTune();
+
+            setTimeout(() => {
+                document.getElementById('modalOverlay').classList.add('active');
+            }, 400);
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
